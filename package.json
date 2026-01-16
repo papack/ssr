@@ -1,7 +1,7 @@
 {
   "name": "@papack/ssr",
   "description": "Minimal server-side rendering framework",
-  "version": "0.0.0",
+  "version": "0.1.0",
   "author": "Matthias Steiner",
   "repository": "github:papack/ssr",
   "homepage": "https://github.com/papack/ssr",

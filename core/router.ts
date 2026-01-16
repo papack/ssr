@@ -7,22 +7,14 @@ export type Context<Ctx> = {
   params: Record<string, string>;
 } & Ctx;
 
-type CacheEntry = {
-  value: string;
-  expires: number;
-};
-
 type Route<Ctx> = {
   parts: string[];
   contentType: string;
-  ttl?: number;
-  cache?: Map<string, CacheEntry>;
   handler: (ctx: Context<Ctx>) => string | Promise<string>;
 };
 
 type RouteOptions = {
   path: string;
-  ttl?: number;
 };
 
 export class Router<Ctx extends object> {
@@ -33,7 +25,7 @@ export class Router<Ctx extends object> {
   private notFoundHandler?: (ctx: Context<Ctx>) => string | Promise<string>;
   private errorHandler?: (
     ctx: Context<Ctx>,
-    err: unknown
+    err: unknown,
   ) => string | Promise<string>;
 
   constructor(ctx: Ctx) {
@@ -76,23 +68,6 @@ export class Router<Ctx extends object> {
 
           if (!match) continue;
 
-          const cacheKey =
-            url.pathname +
-            "?" +
-            Object.entries(params)
-              .map(([k, v]) => `${k}=${v}`)
-              .join("&");
-
-          if (route.ttl && route.cache) {
-            const hit = route.cache.get(cacheKey);
-            if (hit && hit.expires > Date.now()) {
-              res.statusCode = 200;
-              res.setHeader("content-type", route.contentType);
-              res.end(hit.value);
-              return;
-            }
-          }
-
           const ctx: Context<Ctx> = {
             req,
             res,
@@ -104,13 +79,6 @@ export class Router<Ctx extends object> {
 
           if (route.contentType.startsWith("text/html")) {
             body = "<!DOCTYPE html>" + body;
-          }
-
-          if (route.ttl && route.cache) {
-            route.cache.set(cacheKey, {
-              value: body,
-              expires: Date.now() + route.ttl,
-            });
           }
 
           res.statusCode = 200;
@@ -145,7 +113,7 @@ export class Router<Ctx extends object> {
   private async handleError(
     err: unknown,
     req: IncomingMessage,
-    res: ServerResponse
+    res: ServerResponse,
   ) {
     if (this.errorHandler) {
       const ctx: Context<Ctx> = {
@@ -169,28 +137,23 @@ export class Router<Ctx extends object> {
 
   html(
     opts: RouteOptions,
-    handler: (ctx: Context<Ctx>) => string | Promise<string>
+    handler: (ctx: Context<Ctx>) => string | Promise<string>,
   ) {
-    this.addRoute(opts.path, "text/html; charset=utf-8", handler, opts.ttl);
+    this.addRoute(opts.path, "text/html; charset=utf-8", handler);
   }
 
   css(
     opts: RouteOptions,
-    handler: (ctx: Context<Ctx>) => string | Promise<string>
+    handler: (ctx: Context<Ctx>) => string | Promise<string>,
   ) {
-    this.addRoute(opts.path, "text/css; charset=utf-8", handler, opts.ttl);
+    this.addRoute(opts.path, "text/css; charset=utf-8", handler);
   }
 
   js(
     opts: RouteOptions,
-    handler: (ctx: Context<Ctx>) => string | Promise<string>
+    handler: (ctx: Context<Ctx>) => string | Promise<string>,
   ) {
-    this.addRoute(
-      opts.path,
-      "application/javascript; charset=utf-8",
-      handler,
-      opts.ttl
-    );
+    this.addRoute(opts.path, "application/javascript; charset=utf-8", handler);
   }
 
   notFound(handler: (ctx: Context<Ctx>) => string | Promise<string>) {
@@ -198,7 +161,7 @@ export class Router<Ctx extends object> {
   }
 
   error(
-    handler: (ctx: Context<Ctx>, err: unknown) => string | Promise<string>
+    handler: (ctx: Context<Ctx>, err: unknown) => string | Promise<string>,
   ) {
     this.errorHandler = handler;
   }
@@ -211,7 +174,6 @@ export class Router<Ctx extends object> {
     path: string,
     contentType: string,
     handler: (ctx: Context<Ctx>) => string | Promise<string>,
-    ttl?: number
   ) {
     const parts = this.splitPath(path);
 
@@ -219,8 +181,6 @@ export class Router<Ctx extends object> {
       parts,
       contentType,
       handler,
-      ttl,
-      cache: ttl ? new Map() : undefined,
     });
   }
 

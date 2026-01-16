@@ -10,9 +10,8 @@ Minimal server-side rendering framework with JSX-to-string rendering.
 - No state, no reactivity, no hydration
 - Every route is a plain function
 - Built on Node.js `http`
-- Optional TTL-based response caching
 
-This is **SSR only**. request -> render -> response.
+> **SSR only**. request -> render -> response.
 
 ## Install
 
@@ -148,18 +147,6 @@ router.error((ctx, err) => {
 });
 ```
 
-## TTL Cache (Optional)
-
-```ts
-router.html({ path: "/", ttl: 5000 }, () => {
-  return <h1>Cached</h1>;
-});
-```
-
-- Per-route in-memory cache
-- Cache key includes route params
-- TTL in milliseconds
-
 ## Cookies / Headers
 
 ```ts
@@ -169,3 +156,11 @@ router.html({ path: "/login" }, (ctx) => {
   return "ok";
 });
 ```
+
+## Sessions
+
+**@papack/ssr** works well with **@papack/session**. Rendering is strictly request-based, while sessions are handled explicitly via cookies at the `node:http` level. Session data is available through `ctx.req` and `ctx.res`, fitting naturally into the request -> render -> response flow without implicit state.
+
+## Cache
+
+**@papack/ssr** intentionally has no built-in caching. If caching is required, **@papack/cache** can be added explicitly on top to store rendered output or data, keeping cache behavior opt-in and the core SSR model predictable.
